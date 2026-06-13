@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { HeroPieces } from "@/components/hero-pieces";
 
 /**
  * Full-bleed hero band, adapted from michelle-liu.com's gradient page header:
@@ -17,6 +18,7 @@ export function PageHero({
 }) {
   return (
     <div className="hero-gradient grain relative left-1/2 -mt-12 mb-12 w-screen -translate-x-1/2">
+      <HeroPieces />
       <div className={cn("mx-auto max-w-4xl px-5 pb-10 pt-16 sm:px-8", className)}>
         {square && (
           <p aria-hidden="true" className="mb-4 font-mono text-xs text-faint select-none">

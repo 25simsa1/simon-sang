@@ -461,6 +461,29 @@ body {
   }
 }
 
+/* Ambient chess-piece field in the hero margins (HeroPieces): faint scattered
+   silhouettes flanking the centered name/tagline, weighted to the left/right
+   margins. Sage in light, light gray in dark (NOT the bright accent green),
+   well below foreground so AA contrast on the hero text is untouched. Static —
+   the only motion is a few px of scroll parallax (GPU transform), off under
+   reduced motion. Knob: --hero-pieces-opacity (0 kills the layer). */
+:root {
+  --hero-pieces-opacity: 0.045;
+  --hero-piece-color: var(--accent);
+}
+
+.dark {
+  --hero-piece-color: #c4c4c4;
+}
+
+.hero-pieces {
+  opacity: var(--hero-pieces-opacity);
+}
+
+.hero-piece {
+  fill: var(--hero-piece-color);
+}
+
 /* Custom cursor: the CursorFollower component adds .custom-cursor to <html>
    only when it's actually rendering (fine pointer, motion allowed), so the
    native pointer is hidden exactly when the replacement exists. Text fields
