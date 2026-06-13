@@ -1,26 +1,618 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Gallery palette (adopted from michelle-liu.com's aesthetic).
+  Light (default): white canvas, gray ink hierarchy, soft diffuse shadows.
+  Dark: neutral charcoal. Board green survives as the link/focus accent —
+  the one chess note in an otherwise grayscale room.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Site palette (source of truth) */
+  --bg: #ffffff;
+  --bg-elevated: #f3f4f6;
+  --fg: #1f2937;
+  /* #59616d (not gray-500): buys AA margin so muted text stays ≥4.5:1 even
+     under the ambient layers (knight's-tour dot, grain). Don't lighten without
+     re-running that check. */
+  --muted: #59616d;
+  --faint: #9ca3af;
+  --border: #e5e7eb;
+  --accent: #1a6b47;
+  --accent-fg: #ffffff;
+  --accent-soft: #1a6b4710;
+  --shadow-soft: 0px 4px 16px 0px rgba(209, 213, 219, 0.5);
+
+  /* shadcn/ui semantic tokens, mapped onto the site palette.
+     Note: shadcn's "muted"/"accent" mean surface colors; ours mean
+     text-gray/brand-green. The mappings below resolve that. */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--bg-elevated);
+  --card-foreground: var(--fg);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--fg);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--fg);
+  --muted-foreground: var(--muted);
+  --accent-foreground: var(--accent-fg);
+  --destructive: oklch(0.577 0.245 27.325);
+  --input: var(--border);
+  --ring: var(--accent);
+  --radius: 0.875rem;
+}
+
+.dark {
+  --bg: #161616;
+  --bg-elevated: #222222;
+  --fg: #f5f5f5;
+  --muted: #a8a8a8;
+  --faint: #8a8a8a;
+  --border: #2c2c2c;
+  --accent: #51d88f;
+  --accent-fg: #161616;
+  --accent-soft: #51d88f14;
+  --shadow-soft: 0px 4px 16px 0px rgba(0, 0, 0, 0.45);
+  --destructive: oklch(0.704 0.191 22.216);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-figtree);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-figtree);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Z-index tokens, single source of truth. Every decorative layer is
+   pointer-events: none and lives in the ambient band; the modal stacks above
+   everything except the (inert) cursor. Use these via z-[var(--z-*)] —
+   never raw numbers — so stacking bugs can't recur per-component.
+   board(-1, behind content) < ambient 1-10 < nav 30 < modal-backdrop 40
+   < modal 50 < cursor 60+ (decorative, never intercepts). */
+:root {
+  --z-board: -1;
+  --z-grain: 4;
+  --z-gridpulse: 5;
+  --z-trail: 6;
+  --z-knight: 7;
+  --z-nav: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-cursor-dots: 60;
+  --z-cursor-ring: 61;
+  --z-cursor-dot: 63;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  /* prevent the full-bleed hero from causing horizontal scroll */
+  overflow-x: clip;
+}
+
+/*
+  Hero gradient band (adapted from michelle-liu.com's animated header gradient).
+  Hers: pastel blue→pink→white. Ours: a green aurora settling into the page bg.
+  The animation only runs when the user allows motion.
+*/
+/* Living gradient: the stop field is bigger than the band and drifts slowly
+   through sage → pale blue → cream (never warm/saturated), one loop per
+   --gradient-drift-duration. Slow enough that you can't watch it change —
+   you only notice it's different when you look back. */
+:root {
+  --gradient-drift-duration: 28s;
+}
+
+.hero-gradient {
+  /* Muted rose/blush wash (the #c0455a family washed nearly to white, never
+     pink-purple, never saturated), dissolving to the page background by
+     roughly two-thirds down the band. The warmth still reaches the name. */
+  background: linear-gradient(
+    190deg,
+    #f6e3e6 0%,
+    #f6e6e1 18%,
+    #f8ece9 34%,
+    #fbf2f1 50%,
+    #fefbfb 64%,
+    #ffffff 74%,
+    #ffffff 100%
+  );
+  background-size: 220% 220%;
+  background-position: 0% 40%;
+}
+
+.dark .hero-gradient {
+  /* Night version: deep wine/garnet glow, same low intensity as the old sage. */
+  background: linear-gradient(
+    190deg,
+    #2f1d23 0%,
+    #2a1b20 12%,
+    #23191c 26%,
+    #1c1718 40%,
+    #161616 58%,
+    #161616 100%
+  );
+  background-size: 130% 130%;
+}
+
+@keyframes hero-gradient-drift {
+  0% {
+    background-position: 0% 40%;
+  }
+  50% {
+    background-position: 85% 60%;
+  }
+  100% {
+    background-position: 0% 40%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-gradient {
+    animation: hero-gradient-drift var(--gradient-drift-duration) ease-in-out infinite;
+  }
+}
+
+/* Film-grain overlay for the hero (SVG noise — no image asset needed). */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  opacity: 0.05;
+}
+
+.dark .grain::after {
+  opacity: 0.07;
+}
+
+/*
+  Card entrance (her projectCardEnter): pure CSS so it runs on first paint,
+  staggered via inline animation-delay. Off under reduced motion.
+*/
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.card-enter {
+  animation: card-enter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-enter {
+    animation: none;
+  }
+}
+
+/* Animated quote underline (hers, recolored to the accent). */
+.quote-underline {
+  background-image: linear-gradient(to right, var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 2px;
+  transition: background-size 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-bottom: 2px;
+}
+
+.quote-underline.revealed {
+  background-size: 100% 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quote-underline {
+    background-size: 100% 2px;
+    transition: none;
+  }
+}
+
+/* Breathing availability dot: a slow gentle opacity pulse, the one allowed
+   "alive" accent in the hero block. Static under reduced motion. */
+@keyframes dot-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .breathe-dot {
+    animation: dot-breathe 3.5s ease-in-out infinite;
+  }
+}
+
+/* Pulsing availability dot (her green-pulse-ring, motion-gated). */
+.pulse-dot {
+  position: relative;
+}
+
+.pulse-dot::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot::before {
+    animation: pulse-ring 2.3s ease-out infinite;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Page grain (static, no component — a plain div in the layout): full-viewport
+   film-grain so flat cream/white areas read printed, not rendered. Normal
+   blending on purpose: overlay/soft-light are identity over pure white, which
+   is most of this canvas. STATIC by design — animated grain flickers. It can
+   stay under reduced motion (nothing moves). Knob: --grain-opacity (0 kills). */
+:root {
+  --grain-opacity: 0.025;
+}
+
+.page-grain {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grain);
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  opacity: var(--grain-opacity);
+}
+
+/* Grid pulse (GridPulse component): a signal sweeping the faint chessboard —
+   as an invisible wavefront expands from the knight's square (fallback: hero
+   corner), each board square briefly brightens in distance order. 64 cells
+   on the same viewport/8 mapping as the board, animating opacity only.
+   The peak is double-clamped: the layer's opacity is min(--gridpulse-opacity,
+   0.08) and cells animate 0→1→0 inside it. (8%, not the original 4%: at one
+   soft 0.8s fade per ≥6s cycle this is far below any flash-risk threshold —
+   the rate clamp is the real photosensitivity guard.) Period clamped ≥6s in
+   the component. Knobs: --gridpulse-opacity (0 kills), --gridpulse-period. */
+:root {
+  /* 0.06 with the edge mask: visible sweep in the middle of the viewport,
+     fills fading to nothing at the edges (no blocky border cells). Clamped
+     at 0.08; 0 kills. */
+  --gridpulse-opacity: 0.06;
+  --gridpulse-period: 8s;
+}
+
+.gridpulse-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-gridpulse);
+  pointer-events: none;
+  opacity: min(var(--gridpulse-opacity), 0.08);
+  /* Soft mask: fills fade out toward the viewport edges so edge cells never
+     read as blocky rectangles; the sweep stays near-subliminal texture. */
+  mask-image: radial-gradient(120% 120% at 50% 45%, black 50%, transparent 92%);
+  -webkit-mask-image: radial-gradient(120% 120% at 50% 45%, black 50%, transparent 92%);
+}
+
+.gridpulse-cell {
+  position: absolute;
+  width: 12.5%;
+  height: 12.5%;
+  background: var(--accent);
+  opacity: 0;
+}
+
+.gridpulse-layer.is-pulsing .gridpulse-cell {
+  /* Quick ease-in to peak, slower settle back — 800ms total, long enough
+     that neighboring cells overlap and the front reads as a band. Runs once
+     per cycle (the component restarts it); delay is per-cell, set inline. */
+  animation: gridpulse-flash 800ms cubic-bezier(0.3, 0, 0.4, 1) both;
+}
+
+@keyframes gridpulse-flash {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gridpulse-layer {
+    display: none;
+  }
+}
+
+/* Knight's tour trail (KnightTour component): a faint knight wandering an
+   invisible 8×8 board over the viewport. Knobs: --tour-opacity (0 kills it),
+   --tour-step-duration (one knight move per step). Sits above content at very
+   low opacity (z 70 — below the custom cursor); "behind content" doesn't
+   composite here because the body background and cards are opaque. */
+:root {
+  --tour-opacity: 1;
+  --tour-step-duration: 2.5s;
+  --board-opacity: 1;
+}
+
+.knight-tour {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--z-trail);
+  pointer-events: none;
+  opacity: var(--tour-opacity);
+  transition: opacity 2s ease;
+}
+
+/* The knight silhouette rides its own un-stretched layer (the trail SVG's
+   viewBox stretch would distort the piece). transform-only, GPU path. */
+.tour-knight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-knight);
+  pointer-events: none;
+  opacity: var(--tour-opacity);
+  transition: opacity 2s ease;
+  will-change: transform;
+}
+
+/* The board the knight walks: hairline 8×8 grid + coordinates, behind all
+   content (negative z-index paints above the canvas background but below
+   every box — opaque surfaces like the hero band and cards cover it, which
+   is the intent). Lines/coords use --fg at tiny opacity: the border gray at
+   3% would be invisible against white. */
+.tour-board {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-board);
+  pointer-events: none;
+  opacity: var(--board-opacity);
+  transition: opacity 2s ease;
+}
+
+.tour-board-lines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image:
+    linear-gradient(to right, var(--fg) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--fg) 1px, transparent 1px);
+  background-size: 12.5% 12.5%;
+}
+
+.tour-coord {
+  position: absolute;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  color: var(--fg);
+  opacity: 0.04;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .knight-tour,
+  .tour-knight,
+  .tour-board {
+    display: none;
+  }
+}
+
+/* Custom cursor: the CursorFollower component adds .custom-cursor to <html>
+   only when it's actually rendering (fine pointer, motion allowed), so the
+   native pointer is hidden exactly when the replacement exists. Text fields
+   keep their I-beam — losing the caret cursor hurts more than it looks good. */
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .custom-cursor,
+  .custom-cursor a,
+  .custom-cursor button,
+  .custom-cursor label,
+  .custom-cursor summary,
+  .custom-cursor [role="button"] {
+    cursor: none;
+  }
+}
+
+/* Soft diffuse card shadow (her shadow-default), theme-aware via --shadow-soft. */
+.card-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+/* Image-loading shimmer (ShimmerImage): elevated base with a slow accent sweep.
+   Static elevated block under reduced motion. */
+.shimmer {
+  background: var(--bg-elevated);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shimmer {
+    background: linear-gradient(
+      100deg,
+      var(--bg-elevated) 40%,
+      var(--accent-soft) 50%,
+      var(--bg-elevated) 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-sweep 1.8s linear infinite;
+  }
+}
+
+@keyframes shimmer-sweep {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-figtree), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* Visible focus everywhere — 2px accent ring with offset, never suppressed. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Prose styles for MDX articles. */
+.prose {
+  max-width: 65ch;
+  line-height: 1.65;
+}
+.prose h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 2.25rem 0 0.75rem;
+}
+.prose h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.75rem 0 0.5rem;
+}
+.prose p {
+  margin: 1rem 0;
+}
+.prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose ul,
+.prose ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
+.prose li {
+  margin: 0.35rem 0;
+}
+.prose blockquote {
+  border-left: 2px solid var(--accent);
+  padding-left: 1rem;
+  color: var(--muted);
+  margin: 1.5rem 0;
+}
+.prose code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.875em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.prose pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+}
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+.prose hr {
+  border-color: var(--border);
+  margin: 2rem 0;
+}
+/*
+  ---break---
+*/
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }

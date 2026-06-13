@@ -1,0 +1,28 @@
+---
+title: "What a 1000× fee gap taught me about honest research"
+date: "2026-06-01"
+summary: "I built a production-grade microstructure platform and the edge was real, just three orders of magnitude smaller than the fees. Why that's my favorite result."
+status: "draft"
+---
+
+I spent a few weeks building order-book capture for Kraken and Coinbase at one-second resolution. The capture side did WebSocket ingestion with validation and fed a bunch of microstructure features, and sitting on top of all that was a backtester that actually models queue position and fees instead of pretending they're zero. Then the backtester told me the thing I didn't want to hear. The spread-capture edge I'd been chasing is real, you can see it in the data, but retail taker fees of up to 1.20% turn out to be something like 1000× bigger than the edge itself.
+
+A loss that size settles the question. It's a no, and a clear one.
+
+There's a version of this writeup that hides that. It would open with the infrastructure, show off the Epps effect plots and the SOL order-flow autocorrelation, and let you assume something tradeable came out the far end. Plenty of project pages get written exactly that way and I understand the temptation. "I built a thing and it found nothing" doesn't read like a win.
+
+The costs were never a detail to bolt on at the end, though. They were the hypothesis. The real question was never whether spread-capture edge exists, because it obviously does, it's right there in the data. The question was whether it survives the round trip once you pay to get in and back out. For a retail taker handing over up to 1.20% each way, it doesn't, and not by a hair. It loses by roughly a factor of a thousand. If a strategy dies the moment you charge it realistic fees, it was never working in the first place. It was a backtest nobody had billed yet.
+
+Change the cost structure and you've changed the hypothesis entirely. Maker rebates flip the sign, so your effective spread goes negative and you get paid to provide liquidity rather than paying to take it. Institutional fee tiers down around 0.10% to 0.20% are a different game again. I won't pretend the edge is dead for everyone. For me, and for anyone else paying retail, it is. That's a smaller and more honest statement than "there's no edge," and it happens to be the one the data supports.
+
+The platform can still answer real things, too. It can tell me which assets show no taker edge whatsoever. It can estimate how large the raw edge would have to get before it clears that 1.20% toll, and what the queue-position model says about fill probability even on trades that are already underwater. Those answers are honest and they're available today. So what I really ended up building is a machine for catching myself when I'm wrong, and the trading system was almost beside the point.
+
+A few things came out of it that I'm holding onto. The infrastructure is the obvious one, since it can test the next idea for almost nothing now that it exists. There's also the discipline of keeping strict mypy and ruff alongside a pytest suite I actually maintained. That matters most when the answer is going to sting, because that's exactly when you need to trust the pipeline that handed it to you. Underneath both of those is the question I now try to ask before anything else, which is what would make this result wrong, long before I get anywhere near how do I make it look good.
+
+If I were starting something like this over, I'd model the fees before writing a single line of infrastructure. The most expensive item in the whole strategy is the one the exchange charges you, and you can estimate it on day one with a napkin. If the edge can't beat costs in that rough sketch, the three weeks of WebSocket plumbing you were about to write won't rescue it.
+
+I'd make the pipeline fail loudly, as well. A logger that keeps writing the same snapshot over and over looks perfectly healthy until you go and check it by hand. Bad data never announces itself. It just sits there poisoning the results while everything appears fine, so you have to instrument for the failures you'd otherwise sail right past.
+
+Run a placebo while you're at it. Feed the backtester random entries and see what it says. If noise comes back looking profitable, your backtester is lying to you, and you'd much rather learn that from a pile of random trades than from a strategy you've already fallen for. And don't let your appetite for infrastructure get out ahead of the question you're actually asking. A gorgeous pipeline pointed at a bad idea is still a bad idea, now with excellent logging.
+
+The hard part of all this is psychological more than technical. When you suspect the answer is no, the whole game is asking the question that proves it as fast as you possibly can. That's why the leftovers matter. The infrastructure makes the next test cheap. The strict checks mean I believe the pipeline even when it hands me something I hate. And the question I keep circling back to, what would make this wrong, is most of what stands between me and a number I badly wanted to be true. Build the thing that tells you no. The yes will mean a lot more when it finally shows up.

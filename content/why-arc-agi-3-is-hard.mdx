@@ -1,0 +1,14 @@
+---
+title: "Why frontier models score <0.5% on ARC-AGI-3"
+date: "2026-06-08"
+summary: "Notes from building a training-free system that matches frontier-model performance with zero LLM calls, and what the benchmark actually measures."
+status: "draft"
+---
+
+ARC-AGI-3 is an interactive benchmark. It drops you into a small game whose rules you're never told, and scores you on how well you work out what the environment actually wants from you. Frontier models score under 0.5%. The system I'm building sits in that same band with no LLM calls at inference, which already says something about the benchmark and about what large models are and aren't good for right now.
+
+That's about as far as I'm willing to commit on a public page today. The project is still open, the numbers still move week to week, and a couple of the more interesting claims could sharpen or fall apart as I keep going. The full writeup is parked until the work itself is finished.
+
+When it does land, it should get into why interaction breaks the pattern-completion framing that carried ARC-1 and ARC-2, and the offline loop at the core of my approach, where a model proposes world-model rules and none of them count until they survive exact replay against recorded trajectories. There's also the genuinely unglamorous part, reverse-engineering an evaluation whose behavior nobody documented, and the place where my results part ways with a published arXiv paper.
+
+For now, treat all of it as to be determined. That's the honest state of a project that isn't done yet.
