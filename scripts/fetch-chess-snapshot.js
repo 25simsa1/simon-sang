@@ -45,7 +45,6 @@ async function main() {
         current: rapid.last.rating,
         best: rapid.best?.rating ?? null,
         bestGameUrl: rapid.best?.game ?? null,
-        record: rapid.record ?? null,
       },
       journey,
     };

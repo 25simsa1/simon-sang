@@ -16,7 +16,6 @@ export type RapidStats = {
   current: number;
   best: number | null;
   bestGameUrl: string | null;
-  record: { win: number; loss: number; draw: number } | null;
   /** False when serving the build-time snapshot instead of a live response. */
   live: boolean;
 };
@@ -36,7 +35,6 @@ export async function getRapidStats(): Promise<RapidStats> {
       current: rapid.last.rating,
       best: rapid.best?.rating ?? null,
       bestGameUrl: rapid.best?.game ?? null,
-      record: rapid.record ?? null,
       live: true,
     };
   } catch {

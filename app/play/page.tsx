@@ -58,14 +58,6 @@ export default async function PlayPage() {
                   <dd className="mt-1 font-mono">{stats.best}</dd>
                 </div>
               )}
-              {stats.record && (
-                <div>
-                  <dt className="font-mono text-xs uppercase tracking-wider text-faint">record</dt>
-                  <dd className="mt-1 font-mono">
-                    {stats.record.win}–{stats.record.loss}–{stats.record.draw}
-                  </dd>
-                </div>
-              )}
             </dl>
           </div>
           <p className="mb-4 max-w-xl text-sm leading-relaxed text-muted">

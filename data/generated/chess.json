@@ -4,12 +4,7 @@
   "rapid": {
     "current": 2004,
     "best": 2126,
-    "bestGameUrl": "https://www.chess.com/game/live/169431295844",
-    "record": {
-      "win": 9,
-      "loss": 18,
-      "draw": 1
-    }
+    "bestGameUrl": "https://www.chess.com/game/live/169431295844"
   },
   "journey": [
     {
