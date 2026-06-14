@@ -461,19 +461,21 @@ body {
   }
 }
 
-/* Ambient chess-piece field in the hero margins (HeroPieces): faint scattered
+/* Ambient chess-piece field in the hero margins (HeroPieces): scattered
    silhouettes flanking the centered name/tagline, weighted to the left/right
-   margins. Sage in light, light gray in dark (NOT the bright accent green),
-   well below foreground so AA contrast on the hero text is untouched. Static —
-   the only motion is a few px of scroll parallax (GPU transform), off under
-   reduced motion. Knob: --hero-pieces-opacity (0 kills the layer). */
+   margins. Sage in light, light gray in dark (NOT the bright accent green).
+   Tuned to be clearly visible as banner texture while staying behind the text
+   (it sits below the text in z, so contrast is unaffected). Static — the only
+   motion is a few px of scroll parallax (GPU transform), off under reduced
+   motion. Knobs: --hero-pieces-opacity per mode (0 kills the layer). */
 :root {
-  --hero-pieces-opacity: 0.045;
+  --hero-pieces-opacity: 0.16;
   --hero-piece-color: var(--accent);
 }
 
 .dark {
-  --hero-piece-color: #c4c4c4;
+  --hero-piece-color: #cdcdcd;
+  --hero-pieces-opacity: 0.13;
 }
 
 .hero-pieces {

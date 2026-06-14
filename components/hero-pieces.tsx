@@ -16,7 +16,7 @@ import { KNIGHT_PATH } from "@/components/knight-tour";
  * the band's own stacking context), pointer-events: none, aria-hidden.
  *
  * Color/opacity live in globals.css: sage in light, light gray in dark, at
- * --hero-pieces-opacity (3-5%; 0 kills the layer). Shown only ≥xl, where the
+ * --hero-pieces-opacity per mode (0 kills the layer). Shown only ≥xl, where the
  * centered max-w-4xl column actually leaves margins to fill; below that the
  * pieces would crowd the text, so the layer is display:none.
  */
