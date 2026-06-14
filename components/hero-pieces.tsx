@@ -16,31 +16,32 @@ import { KNIGHT_PATH } from "@/components/knight-tour";
  * the band's own stacking context), pointer-events: none, aria-hidden.
  *
  * Color/opacity live in globals.css: sage in light, light gray in dark, at
- * --hero-pieces-opacity per mode (0 kills the layer). Shown only ≥xl, where the
- * centered max-w-4xl column actually leaves margins to fill; below that the
- * pieces would crowd the text, so the layer is display:none.
+ * --hero-pieces-opacity per mode (0 kills the layer). Shown only ≥lg (1024px),
+ * where the centered max-w-4xl (896px) column leaves ~96px margins to fill;
+ * below that the band has no room beside the text, so the layer is display:none.
  */
 
 type PieceType = "knight" | "pawn" | "rook" | "bishop";
 type Piece = { t: PieceType; x: number; y: number; s: number; r: number };
 
 /** Hand-placed scatter (percent of the band), STATIC so SSR and client render
-    identically — no Math.random at render time. Every x is <14% or >86%, i.e.
-    outside the centered text column (which spans ~15-85% at xl and narrows
-    further on wider screens), with varied size (24-56px) and slight rotation. */
+    identically — no Math.random at render time. Every x is ≤7% or ≥93% so the
+    pieces hug the band edges and stay clear of the centered text column even at
+    the 1024px floor (where each margin is only ~96px). Sizes 24-40px, slight
+    rotation. Verified non-overlapping down to 1024px. */
 const PIECES: Piece[] = [
-  { t: "knight", x: 6, y: 16, s: 42, r: -12 },
-  { t: "pawn", x: 10.5, y: 33, s: 26, r: 7 },
-  { t: "rook", x: 3.5, y: 50, s: 34, r: -6 },
-  { t: "bishop", x: 9.5, y: 67, s: 30, r: 11 },
-  { t: "pawn", x: 4, y: 83, s: 24, r: -9 },
-  { t: "knight", x: 12, y: 91, s: 30, r: 9 },
-  { t: "bishop", x: 92, y: 13, s: 46, r: 13 },
-  { t: "pawn", x: 88, y: 28, s: 26, r: -10 },
-  { t: "rook", x: 96, y: 44, s: 30, r: 8 },
-  { t: "knight", x: 89, y: 60, s: 38, r: -14 },
-  { t: "pawn", x: 96.5, y: 75, s: 28, r: 5 },
-  { t: "rook", x: 90.5, y: 90, s: 56, r: -6 },
+  { t: "knight", x: 5, y: 15, s: 40, r: -12 },
+  { t: "pawn", x: 4, y: 31, s: 24, r: 8 },
+  { t: "rook", x: 6.5, y: 47, s: 32, r: -6 },
+  { t: "bishop", x: 3.5, y: 63, s: 28, r: 11 },
+  { t: "pawn", x: 6, y: 79, s: 24, r: -9 },
+  { t: "knight", x: 4, y: 92, s: 30, r: 7 },
+  { t: "bishop", x: 95, y: 13, s: 40, r: 13 },
+  { t: "pawn", x: 96.5, y: 29, s: 24, r: -10 },
+  { t: "rook", x: 93.5, y: 45, s: 32, r: 8 },
+  { t: "knight", x: 96, y: 61, s: 34, r: -14 },
+  { t: "pawn", x: 93.5, y: 76, s: 24, r: 6 },
+  { t: "rook", x: 96, y: 90, s: 40, r: -6 },
 ];
 
 // Simple 24×24 silhouettes (knight reused from the tour for one visual family).
@@ -87,7 +88,7 @@ export function HeroPieces() {
   return (
     <div
       aria-hidden="true"
-      className="hero-pieces pointer-events-none absolute inset-0 -z-10 hidden overflow-hidden xl:block"
+      className="hero-pieces pointer-events-none absolute inset-0 -z-10 hidden overflow-hidden lg:block"
     >
       <div ref={layerRef} className="h-full w-full will-change-transform">
         {PIECES.map((p, i) => (
